@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=e33b3b40-488a-4850-bbb2-f12993087632&lang=ru_RU" type="text/javascript"></script>
+    <script type="text/javascript">
+
+    </script>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript">
+    // var str = window.location.href,
+    //     arr = str.split('?'),
+    //     lat_lng = [];
+    // for (var i = 1; i < arr.length; i++) {
+    //   var data = arr[i].split('=')
+    //   lat_lng.push(data[1])
+    // }
+    var data = [];
+    function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, '\\$&');
+        var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    }
+    // Функция ymaps.ready() будет вызвана, когда
+    // загрузятся все компоненты API, а также когда будет готово DOM-дерево.
+    ymaps.ready(init);
+    function init(){
+        // Создание карты.
+        var myMap = new ymaps.Map("map", {
+            // Координаты центра карты.
+            // Порядок по умолчанию: «широта, долгота».
+            // Чтобы не определять координаты центра карты вручную,
+            // воспользуйтесь инструментом Определение координат.
+            center: [56.492679, 84.961085],
+            controls: [],
+            // Уровень масштабирования. Допустимые значения:
+            // от 0 (весь мир) до 19.
+            zoom: 13
+        });
+        var fullscreenControl = new ymaps.control.FullscreenControl();
+        myMap.controls.add(fullscreenControl);
+        fullscreenControl.enterFullscreen();
+        var multiRoute = new ymaps.multiRouter.MultiRoute({
+            // Точки маршрута. Точки могут быть заданы как координатами, так и адресом.
+            referencePoints: [
+                getParameterByName('start'),
+                getParameterByName('end')
+                // [55.734876, 37.59308], // улица Льва Толстого.
+            ],
+            params: {
+              // Тип маршрута: на общественном транспорте.
+              routingMode: "masstransit"
+            }
+        }, {
+              // Автоматически устанавливать границы карты так,
+              // чтобы маршрут был виден целиком.
+              boundsAutoApply: true
+        });
+        multiRoute.events.add('update', function() {
+            // Получение активного маршрута.
+            var activeRoute = multiRoute.getActiveRoute();
+            // Получение путей активного маршрута.
+            var activeRoutePaths = activeRoute.getPaths();
+            activeRoutePaths.each(function(path) {
+                console.log("Длина пути: " + path.properties.get("distance").text);
+                data.push(path.properties.get("duration").text + '|')
+                console.log("Время прохождения пути: " + path.properties.get("duration").text);
+            });
+            // Проход по коллекции путей маршрута.
+            activeRoutePaths.each(function(path) {
+                // Получение сегментов маршрута.
+                var segments = path.getSegments();
+                // Проход по коллекции сегментов маршрута.
+                segments.each(function(segment) {
+                    // Тип сегмента (пеший или на транспорте).
+                    var segmentType = segment.properties.get("type");
+                    // Получение всех сегментов "На транспорте".
+                    var segmentTransports = segment.properties.get('transports');
+                    if (segmentTransports != undefined) {
+                        segmentTransports.forEach(function(transport) {
+                            data.push(transport.name)
+                            console.log("Направление или номер маршрута: " + transport.name);
+                            console.log("Тип транспорта: " + transport.type);
+                            console.log("Цвет: " + transport.Style); // Цвет линии метро.
+                        });
+                    }
+                    // document.write(data.join())
+                })
+            });
+            console.log('data', data);
+            setTimeout(response, 1000)
+        });
+        // Добавление маршрута на карту.
+        // myMap.geoObjects.add(multiRoute);
+    }
+    function response(){
+      document.write(data.join())
+    }
+</script>
+  </body>
+</html>
